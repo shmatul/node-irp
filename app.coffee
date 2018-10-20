@@ -71,9 +71,9 @@ class CacheImage
 
     @ext = @file_name.split('.').reverse()[0]
 
-    @cached_dir   = "cache/ori/"
+    @cached_dir   = "cache/ori"
     @cached_file  = "#{@cached_dir}/#{md5(@file_name)}.#{@ext}"
-    @resized_dir  = "cache/res/"
+    @resized_dir  = "cache/res"
     @resized_file = "#{@resized_dir}/#{md5(@file_name+@gravity)}.#{@ext}"
 
 
