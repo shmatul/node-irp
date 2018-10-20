@@ -38,11 +38,11 @@ easy_image_resize = (opts, func) ->
   exec doit, func
 
 mkdirp = (path) ->
-  return if fs.existsSync( path )  
+  return if fs.existsSync( path )
   base = []
   for el in path.split('/')
     base.push el
-    fs.mkdirSync base.join('/') unless fs.existsSync( base.join('/') )  
+    fs.mkdirSync base.join('/') unless fs.existsSync( base.join('/') )
 
 safe_do = (func) ->
   try
@@ -52,7 +52,7 @@ safe_do = (func) ->
 
 
 class CacheImage
-  @content_type = 
+  @content_type =
     jpg: 'image/jpeg'
     jpeg: 'image/jpeg'
     gif: 'image/gif'
@@ -60,27 +60,27 @@ class CacheImage
     js: 'text/javascript'
 
   constructor: (@url, @size, @quality, @type, @gravity) ->
+    @start = Date.now()
     path = @url.toLowerCase().split('/')
     path.shift()
     path.shift()
     @domain = path.shift().replace(/www\./,'')
     @domain = "#{@domain[0]}/#{@domain}"
-    @file_name = path.join('/').replace(/[^\w\.]+/g, "_")
+    @file_name = @start+path.join('/').replace(/[^\w\.]+/g, "_")
+
 
     @ext = @file_name.split('.').reverse()[0]
 
-    @cached_dir   = "cache/ori/#{@domain}/#{@file_name.substring(0, 2)}"
+    @cached_dir   = "cache/ori/"
     @cached_file  = "#{@cached_dir}/#{md5(@file_name)}.#{@ext}"
-    @resized_dir  = "cache/res/#{@domain}/#{@type}/#{@size}-#{@quality}/#{@file_name.substring(0, 2)}"
+    @resized_dir  = "cache/res/"
     @resized_file = "#{@resized_dir}/#{md5(@file_name+@gravity)}.#{@ext}"
-
-    @start = Date.now()
 
 
 class ResizeRequest
   constructor: (@req, @res, @type) ->
     opts = @req.path.split("/")
-    
+
     return @cached() if @type == 'cache'
 
     qs = @req.query
@@ -116,7 +116,7 @@ class ResizeRequest
           exec("curl -o '#{@image.cached_file}' 'http://free.pagepeeker.com/v2/thumbs.php?size=l&url=#{qs.source.replace(/https?:\/\//,'').replace(/www\./,'')}'")
           # return @when_we_have_original_image()
           return @res.redirect("http://free.pagepeeker.com/v2/thumbs.php?size=l&url=#{qs.source}")
-        
+
         return @when_we_have_original_image()
       return
 
@@ -137,7 +137,7 @@ class ResizeRequest
         console.log "Download start: #{qs.source}"
         try
           mkdirp @image.cached_dir
-          exec "curl '#{qs.source}' -o #{@image.cached_file}", => 
+          exec "curl '#{qs.source}' -o #{@image.cached_file}", =>
             @when_we_have_original_image()
         catch err
           @res.send 500, {}, "Error: #{err}, probably bad URL (#{qs.source})"
@@ -154,12 +154,12 @@ class ResizeRequest
       @res.send 500, {}, "Error: #{err}, probably img not on disk (#{local_path})"
 
   when_we_have_original_image: ->
-    # return @deliver_resized_image() if fs.existsSync( @image.resized_file ) 
+    # return @deliver_resized_image() if fs.existsSync( @image.resized_file )
     return @write_in_browser( @image.cached_file ) if @type == 'copy'
 
     mkdirp @image.resized_dir
 
-    opts = 
+    opts =
       type: @image.ext
       fill: true
       quality: @image.quality
@@ -211,9 +211,9 @@ class ResizeRequest
       @res.set 'Cache-control': "public, max-age=#{seconds}, no-transform"
       @res.set 'Content-type': b.headers['content-type']
       @res.set 'ETag': md5("#{url}-#{sec_time_stamp}")
-      
+
       # @res.set 'Expires', new Date(Date.now() + seconds).toUTCString()
-      
+
       return @res.send b.body
 
 
@@ -231,6 +231,6 @@ app.get "/copy*",    (req, res) -> safe_do -> new ResizeRequest(req, res, 'copy'
 app.get "/cache*",   (req, res) -> safe_do -> new ResizeRequest(req, res, 'cache')
 
 # port = if process.env.NODE_PROD is "true" then 80 else 8080
-port = 4000
+port = 80
 app.listen port
 console.log "NodeIRP started on port " + port
